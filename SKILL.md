@@ -30,6 +30,17 @@ agent_created: true
 - 「把 svg 目录批量转成 png」
 - 「svg 转 png，要 2 倍图 / 透明背景」
 
+## 和其他 SVG→PNG 方案的取舍
+
+本工作区另有 `svg-to-png-trae`（纯 PIL + numpy，不需要浏览器）。**默认用本 skill** —— 它是无头 Chromium 渲染，结果与浏览器一致。
+
+只有这两种情况才考虑 trae：
+
+- 机器上**没有任何 Chromium 系浏览器**（本 skill 无法工作）
+- SVG 只含基础几何 + 渐变 + 描边，且批量很大，想省掉每张一次的浏览器启动开销
+
+**只要 SVG 里出现文字、滤镜、`mask`、`clipPath`、`<style>`、CSS 变量或 `foreignObject`，就必须用本 skill** —— trae 遇到这些会**静默丢内容**，不报错，只产出一张缺东西的图。
+
 ## 为什么用浏览器而不是渲染库
 
 无头 Chromium 是唯一**既不需要安装、又能认全 SVG 特性**的方案。实测对比（同一张测试图，6 类特性）：
