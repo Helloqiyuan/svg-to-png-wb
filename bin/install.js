@@ -13,9 +13,9 @@
  * （同目录下另有 svg-to-png-trae）。它**不代表任何产品名**，也不要当作某个
  * 缩写来解读。
  *
- * 安装位置：本安装器刻意不绑定任何特定 agent 客户端的目录名，默认装到中性的
- * `~/.agent-skills/<skill 名>/`。要用它，再把这个目录链接或复制到你实际使用
- * 的客户端的 skills 目录下；或者用 AGENT_SKILLS_DIR 直接指定根目录。
+ * 安装位置：本安装器刻意不绑定任何特定 agent 客户端的目录名。默认装到中性的
+ * `~/.agents/skills/<skill 名>/`；要用别的客户端自己的 skills 目录，用
+ * AGENT_SKILLS_DIR 指定其根目录，或用 --dest 指定确切目录。
  */
 
 const fs = require('node:fs');
@@ -27,12 +27,12 @@ const PKG_ROOT = path.resolve(__dirname, '..');
 /** 真正需要装到 skills 目录里的内容（不含 package.json / bin / README） */
 const PAYLOAD = ['SKILL.md', 'scripts', 'references'];
 
-/** 中性默认根目录：~/.agent-skills/ */
-const DEFAULT_SKILLS_ROOT = path.join(os.homedir(), '.agent-skills');
-/** 项目级根目录：<当前目录>/.agent-skills/ */
-const PROJECT_SKILLS_ROOT = '.agent-skills';
+/** 中性默认根目录：~/.agents/skills/ */
+const DEFAULT_SKILLS_ROOT = path.join(os.homedir(), '.agents', 'skills');
+/** 项目级根目录：<当前目录>/.agents/skills/ */
+const PROJECT_SKILLS_ROOT = path.join('.agents', 'skills');
 /**
- * 想直接装到某个客户端真实的 skills 根目录时，用它指定，省掉手工链接那一步。
+ * 想装到别处（例如某个客户端自己的 skills 根目录）时用它指定。
  * 变量名刻意保持中性，不绑定任何产品。
  */
 const SKILLS_ROOT_ENV = 'AGENT_SKILLS_DIR';
@@ -90,7 +90,7 @@ ${pkg.description}
   （也可以从源码仓库装：npx github:Helloqiyuan/svg-to-png-wb）
 
 选项
-  -p, --project        装到当前项目的 .agent-skills/ 下（默认装到用户级目录）
+  -p, --project        装到当前项目的 .agents/skills/ 下（默认装到用户级目录）
       --dest <path>    指定确切的安装目录（优先级最高）
   -f, --force          目标已存在时覆盖
       --dry-run        只打印将要执行的操作，不写任何文件
@@ -100,20 +100,15 @@ ${pkg.description}
 
 安装位置（优先级从高到低）
   --dest <path>
-  项目级          <当前目录>/.agent-skills/${SKILL_NAME}
+  项目级          <当前目录>/.agents/skills/${SKILL_NAME}
   $${SKILLS_ROOT_ENV}      该变量的值 + /${SKILL_NAME}
   用户级（默认）  ${target}
 
 关于安装位置
   本安装器刻意不绑定任何特定 agent 客户端的目录名，默认装到中性的
-  ${DEFAULT_SKILLS_ROOT} 下。要让某个客户端加载到它，二选一：
+  ${DEFAULT_SKILLS_ROOT} 下。要装到某个客户端自己的 skills 目录：
 
-    1) 把安装出来的目录链接或复制到该客户端的 skills 目录里
-       macOS/Linux : ln -s <安装目录> <你的 skills 目录>/${SKILL_NAME}
-       Windows     : mklink /D "%USERPROFILE%\\<你的 skills 目录>\\${SKILL_NAME}" "<安装目录>"
-
-    2) 或者直接指定该客户端的 skills 根目录后重装，省掉这一步
-       ${SKILLS_ROOT_ENV}="<你的 skills 根目录>" npx svg-to-png-wb --force
+    ${SKILLS_ROOT_ENV}="<该客户端的 skills 根目录>" npx svg-to-png-wb --force
 
 示例
   # 装到中性默认目录，所有项目都能用
@@ -122,7 +117,7 @@ ${pkg.description}
   # 装到当前项目
   npx svg-to-png-wb --project
 
-  # 直接装到某个客户端的 skills 根目录
+  # 装到指定客户端的 skills 根目录
   ${SKILLS_ROOT_ENV}="/path/to/skills" npx svg-to-png-wb
 
   # 覆盖已安装的旧版本
@@ -272,18 +267,6 @@ function doInstall(opts, dest) {
   process.stdout.write(`\n✓ svg-to-png-wb v${pkg.version} 已安装\n\n`);
   process.stdout.write(`  位置    ${dest}\n`);
   process.stdout.write(`  文件    ${fileCount} 个，共 ${size}${alreadyThere ? '（已覆盖原目录）' : ''}\n\n`);
-
-  // 装到中性默认目录时，还需要一步才能被客户端加载到。
-  const onNeutralDefault = !opts.dest && !opts.project && !skillsRootFromEnv();
-  if (onNeutralDefault) {
-    process.stdout.write('下一步：让 agent 客户端加载到它\n');
-    process.stdout.write('  把上面的目录链接或复制到该客户端的 skills 目录下：\n');
-    process.stdout.write(`    macOS/Linux : ln -s "${dest}" "<你的 skills 目录>/${SKILL_NAME}"\n`);
-    process.stdout.write(`    Windows     : mklink /D "%USERPROFILE%\\<你的 skills 目录>\\${SKILL_NAME}" "${dest}"\n`);
-    process.stdout.write('  或者指定该客户端的 skills 根目录后重装，省掉这一步：\n');
-    process.stdout.write(`    ${SKILLS_ROOT_ENV}="<你的 skills 根目录>" npx svg-to-png-wb --force\n\n`);
-  }
-
   process.stdout.write('怎么用\n');
   process.stdout.write('  在支持 skill 自动加载的 agent 客户端里，直接说「把 xxx.svg 转成 PNG」即可。\n');
   process.stdout.write('  也可以直接调脚本：\n');

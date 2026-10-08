@@ -17,18 +17,18 @@
 
 ## 安装
 
-本安装器**刻意不绑定任何特定 agent 客户端的目录名**。默认装到一个中性的位置，再由你把它链接或复制到实际使用的客户端里；也可以直接用环境变量指定该客户端的 skills 根目录，省掉链接那一步。
+本安装器**刻意不绑定任何特定 agent 客户端的目录名**。默认装到 `~/.agents/skills/`；要装到某个客户端自己的 skills 目录，用环境变量 `AGENT_SKILLS_DIR` 指向它的根目录即可。
 
 ### 方式一：用 npx 安装（推荐）
 
 ```bash
-# 装到中性默认目录（~/.agent-skills/），所有项目都能用
+# 装到默认目录（~/.agents/skills/），所有项目都能用
 npx svg-to-png-wb
 
-# 装到当前项目（./.agent-skills/）
+# 装到当前项目（./.agents/skills/）
 npx svg-to-png-wb --project
 
-# 直接装到某个客户端的 skills 根目录，省掉手工链接
+# 装到某个客户端自己的 skills 根目录
 AGENT_SKILLS_DIR="/path/to/skills" npx svg-to-png-wb
 
 # 覆盖已安装的旧版本
@@ -49,7 +49,7 @@ npx github:Helloqiyuan/svg-to-png-wb
 
 | 选项 | 说明 |
 |---|---|
-| `-p, --project` | 装到当前项目的 `.agent-skills/` 下（默认是用户级目录） |
+| `-p, --project` | 装到当前项目的 `.agents/skills/` 下（默认是用户级目录） |
 | `--dest <path>` | 指定确切的安装目录（优先级最高） |
 | `AGENT_SKILLS_DIR` | 环境变量，指定 skills 根目录，本 skill 装到 `<它>/svg-to-png-wb` |
 | `-f, --force` | 目标已存在时覆盖 |
@@ -57,23 +57,22 @@ npx github:Helloqiyuan/svg-to-png-wb
 | `--uninstall` | 卸载（只会删除确认为本 skill 的目录） |
 | `-h, --help` / `-v, --version` | 帮助 / 版本号 |
 
-优先级：`--dest` > `--project` > `$AGENT_SKILLS_DIR` > 中性默认目录。
+优先级：`--dest` > `--project` > `$AGENT_SKILLS_DIR` > `~/.agents/skills/`。
 
 安装器只依赖 Node 内置模块，Node.js >= 18 即可，不需要 `npm install` 任何东西。
 
-### 装完之后：让客户端加载到它
+### 装到别处
 
-装到中性默认目录时，还需要一步：
+如果你的客户端从自己的目录加载 skill（而不是 `~/.agents/skills/`），有两种做法：
 
 ```bash
-# macOS / Linux
-ln -s ~/.agent-skills/svg-to-png-wb "<你的 skills 目录>/svg-to-png-wb"
+# 1) 直接指定它的 skills 根目录（推荐）
+AGENT_SKILLS_DIR="<你的 skills 根目录>" npx svg-to-png-wb --force
 
-# Windows
-mklink /D "%USERPROFILE%\<你的 skills 目录>\svg-to-png-wb" "%USERPROFILE%\.agent-skills\svg-to-png-wb"
+# 2) 或者先装到默认目录，再链接/复制过去
+ln -s ~/.agents/skills/svg-to-png-wb "<你的 skills 目录>/svg-to-png-wb"          # macOS / Linux
+mklink /D "%USERPROFILE%\<你的 skills 目录>\svg-to-png-wb" "%USERPROFILE%\.agents\skills\svg-to-png-wb"   # Windows
 ```
-
-或者一开始就用 `AGENT_SKILLS_DIR` 指向真实的 skills 根目录，跳过这一步。
 
 ### 方式二：手动放置
 

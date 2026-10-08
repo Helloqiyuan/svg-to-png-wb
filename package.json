@@ -1,6 +1,6 @@
 {
   "name": "svg-to-png-wb",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Render SVG to PNG with the system's headless Chrome/Edge/Chromium. Zero third-party dependencies. Packaged as an agent skill that installs itself into the skills directory.",
   "keywords": [
     "svg",

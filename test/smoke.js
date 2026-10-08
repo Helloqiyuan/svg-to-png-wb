@@ -125,17 +125,17 @@ test('--force overwrites an existing install', () => {
   assert.strictEqual(runInstaller(['--dest', dest, '--force']).status, 0);
 });
 
-test('--project targets ./.agent-skills under the cwd', () => {
+test('--project targets ./.agents/skills under the cwd', () => {
   const out = runInstaller(['--project', '--dry-run']);
   assert.strictEqual(out.status, 0);
-  const expected = path.join('.agent-skills', 'svg-to-png-wb');
+  const expected = path.join('.agents', 'skills', 'svg-to-png-wb');
   assert.ok(out.stdout.includes(expected), 'expected ' + expected + ' in:\n' + out.stdout);
 });
 
-test('the default target is a neutral path', () => {
+test('the default target is a client-neutral path', () => {
   const out = runInstaller(['--dry-run']);
   assert.strictEqual(out.status, 0);
-  const expected = path.join(os.homedir(), '.agent-skills', 'svg-to-png-wb');
+  const expected = path.join(os.homedir(), '.agents', 'skills', 'svg-to-png-wb');
   assert.ok(out.stdout.includes(expected), 'expected ' + expected + ' in:\n' + out.stdout);
 });
 
