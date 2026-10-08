@@ -240,6 +240,13 @@ test('svg2png.py regression suite passes', () => {
   });
   assert.strictEqual(out.status, 0,
     'regression suite failed:\n' + (out.stdout || '') + (out.stderr || ''));
+
+  // Surface the suite's own summary. The suite exits 0 both when it rendered
+  // everything and when it skipped for lack of a browser, so without this line
+  // a green run cannot tell you whether the render path was exercised at all.
+  const lines = (out.stdout || '').trim().split('\n').filter(Boolean);
+  const summary = lines[lines.length - 1] || '';
+  if (summary) console.log('     ' + summary);
 });
 
 // ---------------------------------------------------------------- summary
