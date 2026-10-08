@@ -8,7 +8,7 @@ agent_created: true
 
 把 SVG 矢量图渲染成 PNG 位图。唯一外部条件是机器上已有一个 Chromium 系浏览器（Chrome / Edge / Chromium / Brave / Vivaldi / Opera），**不安装任何 Python 包或 npm 包**。
 
-> **命名说明**：本 skill 名称里的 `wb` 是**工作区标识后缀**，用于区分同类的不同实现（同目录下另有 `svg-to-png-trae`）。**它不代表任何产品名**，也不是任何缩写的还原 —— 不要把它往某个产品上联想。
+> **命名说明**：本 skill 名称里的 `wb` 是**工作区标识后缀**。**它不代表任何产品名**，也不是任何缩写的还原 —— 不要把它往某个产品上联想。
 >
 > **安装位置**：本 skill 刻意不绑定任何特定 agent 客户端的目录名，安装器默认装到 `~/.agents/skills/<skill 名>/`；要装到别处，用环境变量 `AGENT_SKILLS_DIR` 指向目标 skills 根目录（见 README 的「安装」一节）。
 
@@ -33,17 +33,6 @@ agent_created: true
 - 「这个 svg 导出成图片 / 位图」
 - 「把 svg 目录批量转成 png」
 - 「svg 转 png，要 2 倍图 / 透明背景」
-
-## 和其他 SVG→PNG 方案的取舍
-
-本工作区另有 `svg-to-png-trae`（纯 PIL + numpy，不需要浏览器）。**默认用本 skill** —— 它是无头 Chromium 渲染，结果与浏览器一致。
-
-只有这两种情况才考虑 trae：
-
-- 机器上**没有任何 Chromium 系浏览器**（本 skill 无法工作）
-- SVG 只含基础几何 + 渐变 + 描边，且批量很大，想省掉每张一次的浏览器启动开销
-
-**只要 SVG 里出现文字、滤镜、`mask`、`clipPath`、`<style>`、CSS 变量或 `foreignObject`，就必须用本 skill** —— trae 遇到这些会**静默丢内容**，不报错，只产出一张缺东西的图。
 
 ## 为什么用浏览器而不是渲染库
 
