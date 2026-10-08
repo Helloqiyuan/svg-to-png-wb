@@ -265,6 +265,30 @@ def main():
               proc.returncode == 2 and "Traceback" not in proc.stderr,
               "rc=%s %s" % (proc.returncode, (proc.stderr or "")[-160:]))
 
+        # ---------------------------------------------------------- 14. forced size needs a viewBox to scale
+        # On an SVG without a viewBox, --width/--height enlarges the viewport
+        # but leaves the artwork at its original size in the corner. That
+        # renders "ok", is not blank, and is easy to miss - so it warns.
+        abs_sized = root / "absolute.svg"
+        write(abs_sized, SVG % ('width="100" height="100"',
+                                '<rect width="100" height="100" fill="#3366cc"/>'))
+
+        _, data = run_json([str(abs_sized), "--width", "400", "--height", "400"])
+        res = first_result(data)
+        check("forcing a size without a viewBox warns that the drawing did not scale",
+              bool(res.get("warning")) and "viewBox" in (res.get("warning") or ""),
+              res.get("warning"))
+
+        _, data = run_json([str(abs_sized), "--width", "100", "--height", "100"])
+        res = first_result(data)
+        check("forcing the intrinsic size warns nothing",
+              "warning" not in res, res.get("warning"))
+
+        _, data = run_json([str(viewbox), "--width", "400", "--height", "400"])
+        res = first_result(data)
+        check("forcing a size on a viewBox svg warns nothing",
+              "warning" not in res, res.get("warning"))
+
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

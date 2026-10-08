@@ -101,7 +101,7 @@ python scripts/svg2png.py icon.svg --json
 | `--input-dir` / `--outdir` / `--pattern` / `--recursive` | 批量模式。`--recursive` 会**保留子目录结构** |
 | `--flat` | 配合 `--recursive` 使用，把 PNG 全部平铺进 `--outdir`；此时同名文件会报为冲突而不是静默覆盖 |
 | `-b, --background` | `transparent` / `white` / `black` / `#RRGGBB` / `#RRGGBBAA`。**不传就是不透明白底**（见下方坑 7） |
-| `--width` / `--height` | 强制逻辑尺寸（必须成对给出），用于没有 width/height 也没有 viewBox 的 SVG |
+| `--width` / `--height` | 强制逻辑尺寸（必须成对给出），用于没有 width/height 也没有 viewBox 的 SVG。**注意：只有当 SVG 有 `viewBox` 时才会缩放内容**，见下方坑 8 |
 | `--browser` | 指定浏览器可执行文件；也可用环境变量 `SVG2PNG_BROWSER` |
 | `--wait-ms` | 虚拟时间预算（毫秒），给带动画的 SVG 用 |
 | `--timeout` | 单文件超时秒数，默认 60 |
@@ -146,6 +146,25 @@ Bash 沙箱下浏览器子进程可能无法直接写工作区目录。脚本采
 不传 `-b` 时脚本不会加 `--default-background-color`，Chromium 就按自己的默认值来——输出是**不透明白底**（PNG colorType 2，没有 alpha 通道）。要透明必须显式写 `-b transparent`。
 
 这一点直接决定"空白判定"怎么解释：白底图上若什么都没画出来，结果是一张全白图，会被判为 `blank`；而透明底图上同样什么都没画，得到的是一张全透明图，同样判为 `blank`。两种情况都会给出 `WARNING`。
+
+### 8. `--width`/`--height` 只有在 SVG 有 `viewBox` 时才会缩放内容
+
+这是正确的 SVG 语义，但很容易踩：
+
+| SVG | `--width 400 --height 400` 的效果 |
+|---|---|
+| 有 `viewBox` | 内容**缩放填满** 400×400 |
+| 无 `viewBox`（只有 width/height） | **只放大视口**，图形仍保持原始尺寸缩在左上角，其余留白 |
+
+第二种情况会产出一张"渲染成功但基本是空白画布"的图，而且**不会被 `blank` 判定抓到**（图里确实有像素）。所以脚本会额外给一条 `WARNING` 说明内容没有缩放：
+
+```
+--width/--height enlarged the viewport but did not scale the drawing: this SVG
+has no viewBox, so its content stays at 100x100 in the corner. Add a viewBox to
+the SVG to scale it.
+```
+
+要真正放大这类 SVG，得先给它加上 `viewBox`（例如 `viewBox="0 0 100 100"`），再用 `--width/--height` 或 `-s` 缩放。
 
 ## 校验与静默失败
 

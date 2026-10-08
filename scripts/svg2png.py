@@ -168,7 +168,7 @@ def _root_attr(tag, name):
 def inspect_svg(path):
     """Return a dict describing the SVG's intrinsic size.
 
-    keys: text, tag_match, width, height, source, explicit
+    keys: text, tag_match, width, height, source, explicit, viewbox
     """
     text = Path(path).read_text(encoding="utf-8", errors="replace")
     tag_match = _ROOT_TAG_RE.search(text)
@@ -176,22 +176,30 @@ def inspect_svg(path):
         return {"error": "no <svg> root element found"}
 
     tag = tag_match.group(0)
-    width = _length_to_px(_root_attr(tag, "width"))
-    height = _length_to_px(_root_attr(tag, "height"))
-    if width and height:
-        return {"text": text, "tag_match": tag_match, "width": width,
-                "height": height, "source": "width/height attributes", "explicit": True}
 
+    # Parsed first because it decides whether a forced --width/--height will
+    # scale the drawing or merely enlarge the viewport around it.
     viewbox = _root_attr(tag, "viewBox")
+    viewbox_size = None
     if viewbox:
         parts = re.split(r"[\s,]+", viewbox.strip())
         if len(parts) >= 4:
             try:
-                return {"text": text, "tag_match": tag_match,
-                        "width": float(parts[2]), "height": float(parts[3]),
-                        "source": "viewBox", "explicit": False}
+                viewbox_size = (float(parts[2]), float(parts[3]))
             except ValueError:
-                pass
+                viewbox_size = None
+
+    width = _length_to_px(_root_attr(tag, "width"))
+    height = _length_to_px(_root_attr(tag, "height"))
+    if width and height:
+        return {"text": text, "tag_match": tag_match, "width": width,
+                "height": height, "source": "width/height attributes", "explicit": True,
+                "viewbox": viewbox_size is not None}
+
+    if viewbox_size:
+        return {"text": text, "tag_match": tag_match,
+                "width": viewbox_size[0], "height": viewbox_size[1],
+                "source": "viewBox", "explicit": False, "viewbox": True}
 
     return {"error": "no usable width/height/viewBox - pass --width and --height"}
 
@@ -460,14 +468,34 @@ def render_one(browser, src, dest, scale, background, profile_dir, wait_ms,
                     "size_source": info["source"],
                     "bytes": dest.stat().st_size,
                 }
+
+                warnings = []
+
+                # A forced size only scales the drawing when the SVG has a
+                # viewBox. Without one it enlarges the viewport and leaves the
+                # artwork at its original size in the corner - a render that
+                # looks successful but is mostly empty canvas. `blank` cannot
+                # catch it, because the image does contain pixels.
+                if force_size and not info.get("viewbox") and (
+                        round(logical_w), round(logical_h)
+                ) != (round(info["width"]), round(info["height"])):
+                    warnings.append(
+                        "--width/--height enlarged the viewport but did not scale the "
+                        "drawing: this SVG has no viewBox, so its content stays at "
+                        "%gx%g in the corner. Add a viewBox to the SVG to scale it."
+                        % (info["width"], info["height"]))
+
                 try:
                     png = png_info(dest)
                     result["pixels"] = [png["width"], png["height"]]
                     if png["blank"]:
-                        result["warning"] = ("output is empty (fully transparent or plain white) - "
-                                             "the SVG may have failed to paint")
+                        warnings.append("output is empty (fully transparent or plain white) - "
+                                        "the SVG may have failed to paint")
                 except Exception:
                     pass
+
+                if warnings:
+                    result["warning"] = " ".join(warnings)
                 return result
 
             tail = (proc.stderr or "").strip().splitlines()
