@@ -4,9 +4,13 @@
 [![license](https://img.shields.io/npm/l/svg-to-png-wb.svg)](LICENSE)
 [![publish](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml/badge.svg)](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml)
 
-把 SVG 矢量图渲染成 PNG 位图的 WorkBuddy Skill。
+把 SVG 矢量图渲染成 PNG 位图的 agent skill。
 
 用系统已装的 Chromium 系浏览器（Chrome / Edge / Chromium / Brave / Vivaldi / Opera）**无头模式**渲染，**零第三方依赖**——纯 Python 标准库，不需要 `pip install` 或 `npm install` 任何东西。
+
+> **关于名称里的 `wb`**：`wb` 是本工作区命名中的标识后缀，用来区分同类的不同实现（同目录下还有一个 `svg-to-png-trae`）。**它与 `WorkBuddy` 这个词没有直接关联**，不是它的缩写，也不代表它。
+>
+> 下文出现的 `~/.workbuddy-ai/` 只是运行环境**既有的目录路径字面量**，由环境本身决定，与本 skill 的命名无关。
 
 ## 依赖
 
@@ -17,7 +21,7 @@
 
 ### 方式一：用 npx 安装（推荐）
 
-零配置，直接从 npm 拉取并安装到 WorkBuddy 的 skills 目录：
+零配置，直接从 npm 拉取并安装到运行环境的 skills 目录：
 
 ```bash
 # 装到用户级目录（~/.workbuddy-ai/skills/），所有项目都能用

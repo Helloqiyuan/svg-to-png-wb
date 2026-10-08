@@ -4,10 +4,15 @@
 /**
  * svg-to-png-wb 安装器
  *
- * 把本仓库里的 skill 文件（SKILL.md / scripts / references）复制到
- * WorkBuddy 的 skills 目录，使其成为可被自动加载的 skill。
+ * 把本仓库里的 skill 文件（SKILL.md / scripts / references）复制到运行环境的
+ * skills 目录，使其成为可被自动加载的 skill。
  *
  * 零依赖，只用 Node 内置模块。
+ *
+ * 命名说明：本 skill 名称里的 "wb" 是工作区标识后缀（用于区分同类不同实现），
+ * 与 "WorkBuddy" 一词**没有直接关联**。下面 ENV_CONFIG_DIR 里的字面量只是运行
+ * 环境既有的目录名，由环境给定，与本 skill 的命名无关 —— 两者字面相似纯属巧合，
+ * 不要把 `-wb` 当作该目录名的缩写。
  */
 
 const fs = require('node:fs');
@@ -18,6 +23,13 @@ const SKILL_NAME = 'svg-to-png-wb';
 const PKG_ROOT = path.resolve(__dirname, '..');
 /** 真正需要装到 skills 目录里的内容（不含 package.json / bin / README） */
 const PAYLOAD = ['SKILL.md', 'scripts', 'references'];
+
+/**
+ * 运行环境约定的配置目录名。这是环境给定的路径字面量，不是本 skill 名称的一部分。
+ */
+const ENV_CONFIG_DIR = '.workbuddy-ai';
+/** skills 目录相对于 ENV_CONFIG_DIR 的位置 */
+const SKILLS_SUBDIR = 'skills';
 
 const pkg = require(path.join(PKG_ROOT, 'package.json'));
 
@@ -160,13 +172,13 @@ function parseArgs(argv) {
 }
 
 function defaultDest() {
-  return path.join(os.homedir(), '.workbuddy-ai', 'skills', SKILL_NAME);
+  return path.join(os.homedir(), ENV_CONFIG_DIR, SKILLS_SUBDIR, SKILL_NAME);
 }
 
 function resolveDest(opts) {
   if (opts.dest) return opts.dest;
   if (opts.project) {
-    return path.join(process.cwd(), '.workbuddy-ai', 'skills', SKILL_NAME);
+    return path.join(process.cwd(), ENV_CONFIG_DIR, SKILLS_SUBDIR, SKILL_NAME);
   }
   return defaultDest();
 }
@@ -232,7 +244,7 @@ function doInstall(opts, dest) {
   process.stdout.write(`  位置    ${dest}\n`);
   process.stdout.write(`  文件    ${fileCount} 个，共 ${size}${alreadyThere ? '（已覆盖原目录）' : ''}\n\n`);
   process.stdout.write('怎么用\n');
-  process.stdout.write('  在 WorkBuddy 里直接说「把 xxx.svg 转成 PNG」，skill 会被自动加载。\n');
+  process.stdout.write('  在支持 skill 自动加载的 agent 客户端里，直接说「把 xxx.svg 转成 PNG」即可。\n');
   process.stdout.write('  也可以直接调脚本：\n');
   process.stdout.write(`    python "${scriptPath}" icon.svg -s 2 -b transparent\n\n`);
   process.stdout.write('  查看检测到的浏览器：\n');
