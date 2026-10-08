@@ -67,7 +67,9 @@ svg-to-png-wb v${pkg.version}
 ${pkg.description}
 
 用法
-  npx github:Helloqiyuan/svg-to-png-wb [选项]
+  npx svg-to-png-wb [选项]
+
+  （也可以从源码仓库装：npx github:Helloqiyuan/svg-to-png-wb）
 
 选项
   -p, --project        装到当前项目的 .workbuddy-ai/skills/ 下（默认装到用户级目录）
@@ -84,19 +86,19 @@ ${pkg.description}
 
 示例
   # 装到用户级目录，所有项目都能用
-  npx github:Helloqiyuan/svg-to-png-wb
+  npx svg-to-png-wb
 
   # 装到当前项目
-  npx github:Helloqiyuan/svg-to-png-wb --project
+  npx svg-to-png-wb --project
 
   # 覆盖已安装的旧版本
-  npx github:Helloqiyuan/svg-to-png-wb --force
+  npx svg-to-png-wb --force
 
   # 先看看会做什么
-  npx github:Helloqiyuan/svg-to-png-wb --dry-run
+  npx svg-to-png-wb --dry-run
 
   # 卸载
-  npx github:Helloqiyuan/svg-to-png-wb --uninstall
+  npx svg-to-png-wb --uninstall
 
 前置条件
   - Node.js >= 18
@@ -187,14 +189,8 @@ function doInstall(opts, dest) {
 
   const alreadyThere = exists(dest);
 
-  if (alreadyThere && !opts.force) {
-    fail(
-      `目标已存在：${dest}\n` +
-        '如果确认要覆盖，请加 --force：\n' +
-        `  npx github:Helloqiyuan/svg-to-png-wb --force`
-    );
-  }
-
+  // --dry-run must never fail: show what would happen even when the target
+  // already exists and a real run would need --force to proceed.
   if (opts.dryRun) {
     process.stdout.write('\n[dry-run] 不会写入任何文件\n\n');
     process.stdout.write(`  源目录  ${PKG_ROOT}\n`);
@@ -205,8 +201,19 @@ function doInstall(opts, dest) {
       const isDir = fs.statSync(src).isDirectory();
       process.stdout.write(`  复制  ${item}${isDir ? '/' : ''}\n`);
     }
+    if (alreadyThere && !opts.force) {
+      process.stdout.write('\n  注意：目标已存在，实际执行需要加 --force，否则会中止。\n');
+    }
     process.stdout.write('\n');
     return;
+  }
+
+  if (alreadyThere && !opts.force) {
+    fail(
+      `目标已存在：${dest}\n` +
+        '如果确认要覆盖，请加 --force：\n' +
+        '  npx svg-to-png-wb --force'
+    );
   }
 
   fs.mkdirSync(dest, { recursive: true });

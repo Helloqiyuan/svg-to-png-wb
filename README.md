@@ -1,5 +1,8 @@
 # svg-to-png-wb
 
+[![npm version](https://img.shields.io/npm/v/svg-to-png-wb.svg)](https://www.npmjs.com/package/svg-to-png-wb)
+[![license](https://img.shields.io/npm/l/svg-to-png-wb.svg)](LICENSE)
+
 把 SVG 矢量图渲染成 PNG 位图的 WorkBuddy Skill。
 
 用系统已装的 Chromium 系浏览器（Chrome / Edge / Chromium / Brave / Vivaldi / Opera）**无头模式**渲染，**零第三方依赖**——纯 Python 标准库，不需要 `pip install` 或 `npm install` 任何东西。
@@ -13,23 +16,29 @@
 
 ### 方式一：用 npx 安装（推荐）
 
-零配置，直接从 GitHub 拉取并安装到 WorkBuddy 的 skills 目录：
+零配置，直接从 npm 拉取并安装到 WorkBuddy 的 skills 目录：
 
 ```bash
 # 装到用户级目录（~/.workbuddy-ai/skills/），所有项目都能用
-npx github:Helloqiyuan/svg-to-png-wb
+npx svg-to-png-wb
 
 # 装到当前项目（./.workbuddy-ai/skills/）
-npx github:Helloqiyuan/svg-to-png-wb --project
+npx svg-to-png-wb --project
 
 # 覆盖已安装的旧版本
-npx github:Helloqiyuan/svg-to-png-wb --force
+npx svg-to-png-wb --force
 
 # 先看看会做什么，不写任何文件
-npx github:Helloqiyuan/svg-to-png-wb --dry-run
+npx svg-to-png-wb --dry-run
 
 # 卸载
-npx github:Helloqiyuan/svg-to-png-wb --uninstall
+npx svg-to-png-wb --uninstall
+```
+
+没发布到 npm 时也可以直接从源码仓库装：
+
+```bash
+npx github:Helloqiyuan/svg-to-png-wb
 ```
 
 | 选项 | 说明 |

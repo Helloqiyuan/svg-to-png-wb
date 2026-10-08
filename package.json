@@ -1,6 +1,6 @@
 {
   "name": "svg-to-png-wb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WorkBuddy skill: render SVG to PNG using the system's headless Chrome/Edge/Chromium. Zero third-party dependencies.",
   "keywords": [
     "svg",
