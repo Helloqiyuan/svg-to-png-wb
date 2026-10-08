@@ -161,6 +161,19 @@ test('an explicit --dest wins over AGENT_SKILLS_DIR', () => {
   assert.ok(out.stdout.includes(dest), 'expected --dest to win in:\n' + out.stdout);
 });
 
+test('the installer survives a non-ASCII destination path', () => {
+  // Runs in its own process on purpose. fs.cpSync(dir, dest, {recursive:true})
+  // used to abort the process with 0xC0000005 on such paths, which would take
+  // the whole test run down with an opaque exit code instead of a named
+  // failure. Containing it here means the crash is reported, not just seen.
+  const out = spawnSync(process.execPath, [path.join(PKG_ROOT, 'test', 'unicode-path.js')], {
+    encoding: 'utf8',
+    cwd: PKG_ROOT,
+  });
+  assert.strictEqual(out.status, 0,
+    'unicode path test failed:\n' + (out.stdout || '') + (out.stderr || ''));
+});
+
 test('no agent-client product name appears anywhere in the package', () => {
   // This skill deliberately stays client-agnostic: it must not hardcode any
   // particular client's directory name or brand it as being "for" one client.

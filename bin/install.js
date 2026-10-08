@@ -63,6 +63,31 @@ function countFiles(dir) {
   return n;
 }
 
+/**
+ * Copy a file or a directory tree.
+ *
+ * Deliberately does NOT use fs.cpSync: on Windows, cpSync(dir, dest, {recursive:true})
+ * kills the process with STATUS_ACCESS_VIOLATION (0xC0000005) for certain
+ * destination paths containing non-ASCII text. Reproduced 5/5 with a path
+ * holding both CJK and an emoji - e.g. "带中文 <U+1F680> 的目录" - while
+ * neighbouring strings copy fine, which points at a path-encoding bug in the
+ * runtime rather than anything in this file. The crash happens partway through
+ * the copy, leaving a half-installed skill behind with no error message.
+ *
+ * readdirSync + copyFileSync handle the very same path without trouble, so the
+ * tree is walked by hand instead.
+ */
+function copyTree(from, to) {
+  if (fs.statSync(from).isDirectory()) {
+    fs.mkdirSync(to, { recursive: true });
+    for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+      copyTree(path.join(from, entry.name), path.join(to, entry.name));
+    }
+  } else {
+    fs.copyFileSync(from, to);
+  }
+}
+
 function humanSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -257,7 +282,7 @@ function doInstall(opts, dest) {
   for (const item of PAYLOAD) {
     const from = path.join(PKG_ROOT, item);
     const to = path.join(dest, item);
-    fs.cpSync(from, to, { recursive: true, force: true });
+    copyTree(from, to);
   }
 
   const fileCount = countFiles(dest);
