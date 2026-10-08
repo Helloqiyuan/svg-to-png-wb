@@ -154,18 +154,41 @@ test('uninstalling twice exits 1', () => {
 });
 
 // ---------------------------------------------------------------- the python side
-test('scripts/svg2png.py parses as valid Python', () => {
-  const target = path.join(PKG_ROOT, 'scripts', 'svg2png.py');
-  // ast.parse only checks syntax - it never writes __pycache__, so the test
-  // cannot leave bytecode behind for a later `npm publish` to sweep up.
-  const program = 'import ast,sys;ast.parse(open(sys.argv[1],encoding="utf-8").read())';
+function findPython() {
   for (const exe of ['python3', 'python']) {
-    const probe = spawnSync(exe, ['-c', program, target], { encoding: 'utf8' });
-    if (probe.error && probe.error.code === 'ENOENT') continue;
-    assert.strictEqual(probe.status, 0, 'syntax error: ' + (probe.stderr || ''));
+    const probe = spawnSync(exe, ['-c', 'pass'], { encoding: 'utf8' });
+    if (!probe.error && probe.status === 0) return exe;
+  }
+  return null;
+}
+
+const PYTHON = findPython();
+
+test('scripts/svg2png.py parses as valid Python', () => {
+  if (!PYTHON) {
+    console.log('     (skipped: no python on PATH)');
     return;
   }
-  console.log('     (skipped: no python on PATH)');
+  const target = path.join(PKG_ROOT, 'scripts', 'svg2png.py');
+  // ast.parse only checks syntax - it never writes __pycache__, so this test
+  // cannot leave bytecode behind for a later `npm publish` to sweep up.
+  const program = 'import ast,sys;ast.parse(open(sys.argv[1],encoding="utf-8").read())';
+  const out = spawnSync(PYTHON, ['-c', program, target], { encoding: 'utf8' });
+  assert.strictEqual(out.status, 0, 'syntax error: ' + (out.stderr || ''));
+});
+
+test('svg2png.py regression suite passes', () => {
+  if (!PYTHON) {
+    console.log('     (skipped: no python on PATH)');
+    return;
+  }
+  // Skips itself, rather than failing, when no Chromium-family browser exists.
+  const out = spawnSync(PYTHON, [path.join(PKG_ROOT, 'test', 'regression.py')], {
+    encoding: 'utf8',
+    cwd: PKG_ROOT,
+  });
+  assert.strictEqual(out.status, 0,
+    'regression suite failed:\n' + (out.stdout || '') + (out.stderr || ''));
 });
 
 // ---------------------------------------------------------------- summary

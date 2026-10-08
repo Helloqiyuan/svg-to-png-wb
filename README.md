@@ -134,6 +134,18 @@ git push && git push --tags
 
 两点注意：配置**保存后 2 天内**必须完成首次成功发布，否则会失效；`package.json` 的 `repository.url` 必须与仓库精确匹配，否则认证失败。
 
+## 测试
+
+```bash
+npm test                        # 安装器 + 回归测试（后者在无浏览器时自动跳过）
+python test/regression.py       # 只跑 svg2png.py 的回归测试
+```
+
+- `test/smoke.js` —— 打包完整性、SKILL.md frontmatter、CLI 退出码、安装/覆盖/卸载、卸载安全护栏
+- `test/regression.py` —— 覆盖 v1.0.1 修掉的每一个静默失败：缺失输入文件不再拖垮整批、`--recursive` 保留目录结构、`--flat` 冲突上报、数值参数校验、批量进度、`blank` 判定不被采样漏判。装了 Pillow 时还会用它做一次交叉校验
+
+两者都不需要额外依赖，也不写入仓库（Python 语法校验用 `ast.parse` 而非 `py_compile`，避免 `__pycache__` 混进 npm 包）。
+
 ## 文档
 
 - [`SKILL.md`](SKILL.md) — 完整参数表、必须知道的坑、常见问题排查
