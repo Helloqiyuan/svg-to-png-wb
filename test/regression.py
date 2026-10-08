@@ -223,6 +223,48 @@ def main():
                       module.png_info(path)["blank"] == expected,
                       "png_info said %s, Pillow said %s" % (module.png_info(path)["blank"], expected))
 
+        # ---------------------------------------------------------- 10. patch file hygiene
+        # A sizeless SVG is rendered through a temporary patched copy written
+        # next to the source. If cleanup ever regressed, every run would leave
+        # a .svg2png-* file behind in the user's own directory.
+        patch_dir = root / "patchcheck"
+        patch_dir.mkdir(parents=True, exist_ok=True)
+        sizeless = patch_dir / "only-viewbox.svg"
+        write(sizeless, SVG % ('viewBox="0 0 90 40"', '<rect width="90" height="40" fill="#444"/>'))
+        proc, data = run_json([str(sizeless)])
+        res = first_result(data)
+        check("a viewBox-only input renders", res.get("ok") is True, res.get("error", ""))
+        leftovers = sorted(p.name for p in patch_dir.iterdir() if p.name.startswith(".svg2png-"))
+        check("no .svg2png-* patch file is left behind", leftovers == [], leftovers)
+
+        # ---------------------------------------------------------- 11. background parsing
+        for value in ("transparent", "white", "black", "none", "#abc", "#3366cc80"):
+            proc = run([str(simple), "-o", str(root / "bg.png"), "-b", value])
+            check("-b %s is accepted" % value, proc.returncode == 0,
+                  "rc=%s %s" % (proc.returncode, (proc.stderr or "")[-160:]))
+        proc = run([str(simple), "-b", "definitely-not-a-colour"])
+        check("an invalid -b value is rejected",
+              proc.returncode == 2 and "Traceback" not in proc.stderr,
+              "rc=%s %s" % (proc.returncode, (proc.stderr or "")[-160:]))
+
+        # ---------------------------------------------------------- 12. forced size
+        proc, data = run_json([str(viewbox), "--width", "200", "--height", "100"])
+        res = first_result(data)
+        check("--width/--height overrides the intrinsic size",
+              res.get("pixels") == [200, 100], res.get("pixels"))
+        proc = run([str(simple), "--width", "200"])
+        check("--width without --height is rejected", proc.returncode == 2,
+              "rc=%s" % proc.returncode)
+
+        # ---------------------------------------------------------- 13. browser selection
+        proc = run(["--list-browsers"])
+        check("--list-browsers exits 0 and names a browser",
+              proc.returncode == 0 and proc.stdout.strip() != "", repr(proc.stdout[:80]))
+        proc = run([str(simple), "--browser", str(root / "no-such-browser")])
+        check("a bogus --browser path exits 2",
+              proc.returncode == 2 and "Traceback" not in proc.stderr,
+              "rc=%s %s" % (proc.returncode, (proc.stderr or "")[-160:]))
+
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

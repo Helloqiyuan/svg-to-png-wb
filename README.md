@@ -162,14 +162,16 @@ git push && git push --tags
 ```bash
 npm test                        # 安装器 + 回归测试（后者在无浏览器时自动跳过）
 python test/regression.py       # 只跑 svg2png.py 的回归测试
+node test/unicode-path.js       # 只跑非 ASCII 路径的安装测试
 ```
 
-- `test/smoke.js` —— 打包完整性、SKILL.md frontmatter、CLI 退出码、安装/覆盖/卸载、卸载安全护栏
-- `test/regression.py` —— 覆盖 v1.0.1 修掉的每一个静默失败：缺失输入文件不再拖垮整批、`--recursive` 保留目录结构、`--flat` 冲突上报、数值参数校验、批量进度、`blank` 判定不被采样漏判。装了 Pillow 时还会用它做一次交叉校验
+- `test/smoke.js` —— 打包完整性、SKILL.md frontmatter、CLI 退出码、安装/覆盖/卸载、卸载安全护栏、默认与 `--project` 目标、`AGENT_SKILLS_DIR`、POSIX 可执行位
+- `test/regression.py` —— `svg2png.py` 的行为回归：缺失输入文件不再拖垮整批、`--recursive` 保留目录结构、`--flat` 冲突上报、数值参数校验、批量进度、`blank` 判定不被采样漏判、补丁文件用完即删、`-b` 取值校验、`--width/--height` 强制尺寸、`--browser` 选择。装了 Pillow 时还会用它做一次交叉校验
+- `test/unicode-path.js` —— 安装到含空格 + 中文 + emoji 的路径（这类路径曾让安装器崩溃，见下）
 
-两者都不需要额外依赖，也不写入仓库（Python 语法校验用 `ast.parse` 而非 `py_compile`，避免 `__pycache__` 混进 npm 包）。
+三者都不需要额外依赖，也不写入仓库（Python 语法校验用 `ast.parse` 而非 `py_compile`，避免 `__pycache__` 混进 npm 包）。
 
-每次 push 到 `main` 和每个 PR 都会在 GitHub Actions 上跑一遍（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）；发布时（[`publish.yml`](.github/workflows/publish.yml)）会再跑一次作为发布门槛。
+每次 push 到 `main` 和每个 PR 都会在 GitHub Actions 上跑一遍（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）；发布时（[`publish.yml`](.github/workflows/publish.yml)）会再跑一次作为发布门槛。CI 在 ubuntu 上跑，因此也覆盖了 Windows 上测不出来的 POSIX 行为。
 
 ## 文档
 
