@@ -111,6 +111,22 @@ test('installed payload is byte-identical to the package', () => {
   }
 });
 
+test('the executable bit survives the copy on POSIX', () => {
+  // The installer walks the tree with copyFileSync instead of fs.cpSync, and
+  // copyFileSync does not carry the mode across. svg2png.py is committed
+  // executable and has a shebang, so this would silently regress on Linux and
+  // macOS - which is exactly where CI runs, hence the check.
+  if (process.platform === 'win32') {
+    console.log('     (skipped: Windows has no POSIX mode bits)');
+    return;
+  }
+  const rel = 'scripts/svg2png.py';
+  const want = fs.statSync(path.join(PKG_ROOT, rel)).mode & 0o111;
+  const got = fs.statSync(path.join(dest, rel)).mode & 0o111;
+  assert.strictEqual(got, want,
+    'exec bits differ: ' + want.toString(8) + ' -> ' + got.toString(8));
+});
+
 test('re-installing without --force exits 1', () => {
   assert.strictEqual(runInstaller(['--dest', dest]).status, 1);
 });

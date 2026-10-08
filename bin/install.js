@@ -78,13 +78,23 @@ function countFiles(dir) {
  * tree is walked by hand instead.
  */
 function copyTree(from, to) {
-  if (fs.statSync(from).isDirectory()) {
+  const stat = fs.statSync(from);
+  if (stat.isDirectory()) {
     fs.mkdirSync(to, { recursive: true });
     for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
       copyTree(path.join(from, entry.name), path.join(to, entry.name));
     }
   } else {
     fs.copyFileSync(from, to);
+    // copyFileSync does not carry the source mode across, unlike fs.cpSync.
+    // scripts/svg2png.py is committed executable and has a shebang, so restore
+    // it; best effort, since some filesystems refuse chmod and the script is
+    // still perfectly usable as `python scripts/svg2png.py`.
+    try {
+      fs.chmodSync(to, stat.mode);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
