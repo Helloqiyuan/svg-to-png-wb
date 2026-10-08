@@ -266,6 +266,13 @@ test('svg2png.py regression suite passes', () => {
   const out = spawnSync(PYTHON, [path.join(PKG_ROOT, 'test', 'regression.py')], {
     encoding: 'utf8',
     cwd: PKG_ROOT,
+    // The suite loads scripts/svg2png.py through importlib, and SourceFileLoader
+    // writes a bytecode cache next to the source when it does. Interpretors
+    // disagree on whether that happens (ubuntu's python3 writes it, some builds
+    // do not), so suppress it explicitly rather than relying on luck: a stray
+    // __pycache__ inside scripts/ would otherwise be swept into the tarball,
+    // because `files` is a whitelist and does not exclude it.
+    env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
   });
   assert.strictEqual(out.status, 0,
     'regression suite failed:\n' + (out.stdout || '') + (out.stderr || ''));
@@ -276,6 +283,31 @@ test('svg2png.py regression suite passes', () => {
   const lines = (out.stdout || '').trim().split('\n').filter(Boolean);
   const summary = lines[lines.length - 1] || '';
   if (summary) console.log('     ' + summary);
+});
+
+test('the test run leaves no bytecode under scripts/', () => {
+  // `files` whitelists scripts/, so any __pycache__ surviving the suite would
+  // be swept into the tarball. There is no packaging-side net to catch it:
+  // npm's docs are explicit that .npmignore cannot un-include something the
+  // `files` whitelist already covers. So if bytecode shows up - because an
+  // interpreter ignored PYTHONDONTWRITEBYTECODE, or a future test imports the
+  // script some other way - this has to fail, while there is still time to fix
+  // it and before `npm publish` can pick it up.
+  const stray = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === '__pycache__') stray.push(path.relative(PKG_ROOT, full));
+        else walk(full);
+      } else if (entry.name.endsWith('.pyc')) {
+        stray.push(path.relative(PKG_ROOT, full));
+      }
+    }
+  };
+  walk(path.join(PKG_ROOT, 'scripts'));
+  assert.deepStrictEqual(stray, [],
+    'bytecode would ship in the tarball: ' + stray.join(', '));
 });
 
 // ---------------------------------------------------------------- summary
