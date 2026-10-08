@@ -1,0 +1,37 @@
+{
+  "name": "svg-to-png-wb",
+  "version": "1.0.0",
+  "description": "WorkBuddy skill: render SVG to PNG using the system's headless Chrome/Edge/Chromium. Zero third-party dependencies.",
+  "keywords": [
+    "svg",
+    "png",
+    "workbuddy",
+    "skill",
+    "agent-skill",
+    "headless-chrome",
+    "converter"
+  ],
+  "type": "commonjs",
+  "bin": {
+    "svg-to-png-wb": "bin/install.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "references/",
+    "SKILL.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "scripts": {
+    "install-skill": "node bin/install.js",
+    "test": "node bin/install.js --dry-run"
+  }
+}
