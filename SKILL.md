@@ -108,6 +108,7 @@ python scripts/svg2png.py icon.svg --json
 | `--no-sandbox` | 容器内以 root 运行时需要（脚本已自动判断 root 情况） |
 | `--json` | 输出 JSON，含 `pixels` / `bytes` / `warning` |
 | `--dry-run` | 只打印将要执行的命令 |
+| `--list-browsers` | 列出检测到的 Chromium 系浏览器路径后退出，不渲染任何东西 |
 
 退出码：全部成功 0，有失败 1，环境问题（找不到浏览器 / 路径无效）2。
 
