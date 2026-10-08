@@ -59,8 +59,11 @@ python scripts/svg2png.py icon.svg -s 2 -b transparent
 # 指定输出
 python scripts/svg2png.py icon.svg -o build/icon.png -s 3
 
-# 批量：把 svg/ 下所有 svg 转成 png/，2 倍
+# 批量：把 svg/ 下所有 svg 转成 png/，2 倍（保留子目录结构）
 python scripts/svg2png.py --input-dir ./svg --outdir ./png -s 2 --recursive
+
+# 批量但压平到同一层（同名文件会被报为冲突，不会静默覆盖）
+python scripts/svg2png.py --input-dir ./svg --outdir ./png -s 2 --recursive --flat
 
 # 先看会执行什么命令（排障用）
 python scripts/svg2png.py icon.svg --dry-run
@@ -72,28 +75,33 @@ python scripts/svg2png.py --list-browsers
 python scripts/svg2png.py icon.svg --json
 ```
 
-Windows 上优先用托管解释器（无需额外安装）：
+用任意 Python 3 解释器即可，脚本只依赖标准库。如果机器上装了 WorkBuddy 的托管解释器，也可以直接用它（按你本机实际版本号替换 `3.13.12`）：
 
 ```
-C:\Users\Hello\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe
+Windows   %USERPROFILE%\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe
+macOS/Linux   ~/.workbuddy-ai/binaries/python/versions/3.13.12/bin/python3
 ```
 
 ## 参数
 
 | 参数 | 说明 |
 |---|---|
-| `-s, --scale` | 像素倍率，默认 1。输出尺寸 = SVG 逻辑尺寸 × scale |
+| `-s, --scale` | 像素倍率，默认 1。输出尺寸 = SVG 逻辑尺寸 × scale。必须为正数，`0` / 负数会被拒绝 |
 | `-o, --output` | 输出路径，仅单文件可用 |
-| `--input-dir` / `--outdir` / `--pattern` / `--recursive` | 批量模式 |
-| `-b, --background` | `transparent` / `white` / `black` / `#RRGGBB` / `#RRGGBBAA` |
+| `--input-dir` / `--outdir` / `--pattern` / `--recursive` | 批量模式。`--recursive` 会**保留子目录结构** |
+| `--flat` | 配合 `--recursive` 使用，把 PNG 全部平铺进 `--outdir`；此时同名文件会报为冲突而不是静默覆盖 |
+| `-b, --background` | `transparent` / `white` / `black` / `#RRGGBB` / `#RRGGBBAA`。**不传就是不透明白底**（见下方坑 7） |
 | `--width` / `--height` | 强制逻辑尺寸（必须成对给出），用于没有 width/height 也没有 viewBox 的 SVG |
 | `--browser` | 指定浏览器可执行文件；也可用环境变量 `SVG2PNG_BROWSER` |
 | `--wait-ms` | 虚拟时间预算（毫秒），给带动画的 SVG 用 |
+| `--timeout` | 单文件超时秒数，默认 60 |
 | `--no-sandbox` | 容器内以 root 运行时需要（脚本已自动判断 root 情况） |
 | `--json` | 输出 JSON，含 `pixels` / `bytes` / `warning` |
 | `--dry-run` | 只打印将要执行的命令 |
 
 退出码：全部成功 0，有失败 1，环境问题（找不到浏览器 / 路径无效）2。
+
+批量模式（输入多于 1 个文件）会在 **stderr** 打印 `[3/30] xxx.svg` 形式的进度，stdout 保持干净；加 `--json` 则不打印进度。
 
 ## 必须知道的坑
 
@@ -123,12 +131,19 @@ PNG 没有"矢量 DPI"。所谓 300dpi 本质就是按目标像素放大。680×
 
 Bash 沙箱下浏览器子进程可能无法直接写工作区目录。脚本采用"渲染到临时目录 → 移动到目标"的两段式，规避这个问题。
 
+### 7. 默认背景是**不透明白底**，不是透明
+
+不传 `-b` 时脚本不会加 `--default-background-color`，Chromium 就按自己的默认值来——输出是**不透明白底**（PNG colorType 2，没有 alpha 通道）。要透明必须显式写 `-b transparent`。
+
+这一点直接决定"空白判定"怎么解释：白底图上若什么都没画出来，结果是一张全白图，会被判为 `blank`；而透明底图上同样什么都没画，得到的是一张全透明图，同样判为 `blank`。两种情况都会给出 `WARNING`。
+
 ## 校验与静默失败
 
 脚本每次转换后都会用**纯标准库的 PNG 解码器**读回像素，并给出 `blank` 判定：
 
 - `blank = true` 仅当图像**全透明**或**全白**（这两种才是"什么都没画出来"的特征）
 - 合法的纯色图（例如整块绿色方块）**不会**被误报
+- 判定会**逐像素**检查（按行反滤波，遇到第一个与首像素不同的像素就立刻返回）；整行同色的情况用 C 层 `bytes.count()` 识别，所以大画布上的一个小元素**不会**被漏判——这一点已用 Pillow 做基准交叉验证过
 
 批处理时务必看输出里的 `WARNING`。要程序化判断就用 `--json`，检查每个 result 的 `ok` 和 `warning` 字段。
 
@@ -143,6 +158,9 @@ Bash 沙箱下浏览器子进程可能无法直接写工作区目录。脚本采
 | 文字字体不对 | 渲染环境缺字体 | 导出前把 text 转 path |
 | 容器里启动失败 | root 身份 | 加 `--no-sandbox`（脚本对 root 自动开启） |
 | 动画 SVG 只拿到第一帧 | 未推进时间 | 用 `--wait-ms` 给虚拟时间预算 |
+| 导出图有白底，不是透明 | 没传 `-b` | 加 `-b transparent` |
+| 某个输入文件不存在 | 该文件被跳过 | 该文件报 `FAIL`，其余文件照常处理，退出码 1 |
+| 批量后 PNG 数量变少 | 多个同名文件映射到同一输出 | `--recursive` 现在保留目录结构；用 `--flat` 时冲突会报 `FAIL` |
 
 ## 可选：更快的方案
 

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import shutil
@@ -238,6 +239,11 @@ def png_info(path):
     *entirely opaque white* - the two signatures of a render that drew
     nothing. A deliberately flat-coloured image (say a solid green square)
     is NOT flagged.
+
+    Every pixel is considered: rows are unfiltered one at a time and the scan
+    stops at the first pixel that differs from the first one seen. Uniform rows
+    are matched in C, so neither a large canvas nor a tiny element can skew the
+    verdict.
     """
     data = Path(path).read_bytes()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
@@ -266,10 +272,19 @@ def png_info(path):
     channels = 3 if color_type == 2 else 4
     stride = width * channels
     raw = zlib.decompress(bytes(idat))
+
+    # Walk every row and stop at the first pixel that differs from the first one
+    # seen - that alone proves the image is not blank. Rows that are uniform
+    # (all-transparent, all-white, or any solid colour) are recognised with a
+    # C-speed bytes.count(), so genuinely blank images stay cheap as well.
+    # The old code sampled a 64x64 grid instead, which could miss a small
+    # element and report a perfectly good render as blank.
     prev = bytearray(stride)
-    rows = []
     cursor = 0
+    first = None
     for _ in range(height):
+        if cursor + 1 + stride > len(raw):
+            break
         filter_type = raw[cursor]
         cursor += 1
         line = bytearray(raw[cursor:cursor + stride])
@@ -293,31 +308,34 @@ def png_info(path):
                 da, db, dc = abs(estimate - left), abs(estimate - up), abs(estimate - upleft)
                 predictor = left if (da <= db and da <= dc) else (up if db <= dc else upleft)
                 line[i] = (line[i] + predictor) & 0xFF
-        rows.append(bytes(line))
-        prev = line
 
-    step_y = max(1, height // 64)
-    step_x = max(1, width // 64)
-    distinct = set()
-    for y in range(0, height, step_y):
-        row = rows[y]
-        for x in range(0, width, step_x):
-            offset = x * channels
-            pixel = row[offset:offset + channels]
+        if line.count(line[0]) == stride:
+            pixel = bytes(line[:channels])          # uniform row: one value
             if channels == 3:
-                pixel = pixel + b"\xff"
-            distinct.add(bytes(pixel))
-            if len(distinct) > 4:
+                pixel += b"\xff"
+            if first is None:
+                first = pixel
+            elif pixel != first:
                 info["blank"] = False
                 return info
+        else:
+            for x in range(width):
+                offset = x * channels
+                pixel = bytes(line[offset:offset + channels])
+                if channels == 3:
+                    pixel += b"\xff"
+                if first is None:
+                    first = pixel
+                elif pixel != first:
+                    info["blank"] = False
+                    return info
+        prev = line
 
-    if len(distinct) == 1:
-        pixel = next(iter(distinct))
-        alpha = pixel[3]
-        rgb = pixel[:3]
-        info["blank"] = (alpha == 0) or (rgb == b"\xff\xff\xff" and alpha == 0xFF)
-    else:
-        info["blank"] = False
+    if first is None:
+        return info                                 # nothing decoded; blank stays None
+    alpha = first[3]
+    rgb = first[:3]
+    info["blank"] = (alpha == 0) or (rgb == b"\xff\xff\xff" and alpha == 0xFF)
     return info
 
 
@@ -377,7 +395,15 @@ def render_one(browser, src, dest, scale, background, profile_dir, wait_ms,
     src = Path(src).resolve()
     dest = Path(dest).resolve()
 
-    info = inspect_svg(src)
+    # A missing input used to escape as an uncaught FileNotFoundError and kill
+    # the whole batch with a traceback. Report it as a per-file failure instead.
+    if not src.is_file():
+        return {"ok": False, "error": "input not found: %s" % src}
+
+    try:
+        info = inspect_svg(src)
+    except OSError as exc:
+        return {"ok": False, "error": "cannot read input: %s" % exc}
     if "error" in info:
         return {"ok": False, "error": info["error"]}
 
@@ -415,8 +441,11 @@ def render_one(browser, src, dest, scale, background, profile_dir, wait_ms,
                 proc = subprocess.run(cmd, capture_output=True, timeout=timeout,
                                       text=True, errors="replace")
             except subprocess.TimeoutExpired:
-                last_error = "browser timed out after %ss" % timeout
-                continue
+                # A timeout means the render itself is too slow, not that the
+                # browser rejected the flag (an unknown flag fails instantly).
+                # Retrying the other headless variants would just burn two more
+                # full timeouts, so stop here.
+                return {"ok": False, "error": "browser timed out after %ss" % timeout}
             except OSError as exc:
                 return {"ok": False, "error": "cannot launch browser: %s" % exc}
 
@@ -458,11 +487,30 @@ def render_one(browser, src, dest, scale, background, profile_dir, wait_ms,
 # --------------------------------------------------------------------------
 
 def collect_inputs(args):
+    """Return a list of (source_path, relative_output_path) pairs.
+
+    The second element is the path the PNG takes *under* --outdir. A recursive
+    run mirrors the source tree, because flattening it let `a/icon.svg` and
+    `b/icon.svg` silently overwrite each other - only one PNG survived and
+    nothing was reported. Pass --flat to get the old single-directory layout
+    back; real collisions are then reported as failures instead of ignored.
+    """
     if args.input_dir:
         root = Path(args.input_dir)
+        if not root.is_dir():
+            raise ValueError("input directory not found: %s" % root)
         files = sorted(root.rglob(args.pattern) if args.recursive else root.glob(args.pattern))
-        return [f for f in files if f.is_file()]
-    return [Path(p) for p in args.input]
+        pairs = []
+        for path in files:
+            if not path.is_file():
+                continue
+            if args.recursive and not args.flat:
+                relative = path.relative_to(root)
+            else:
+                relative = Path(path.name)
+            pairs.append((path, relative.with_suffix(".png")))
+        return pairs
+    return [(Path(p), None) for p in args.input]
 
 
 def main(argv=None):
@@ -476,6 +524,9 @@ def main(argv=None):
     parser.add_argument("--outdir", help="output directory for batch mode")
     parser.add_argument("--pattern", default="*.svg", help="glob for --input-dir (default: *.svg)")
     parser.add_argument("--recursive", action="store_true", help="recurse into subdirectories")
+    parser.add_argument("--flat", action="store_true",
+                        help="with --recursive, write every PNG straight into --outdir "
+                             "instead of mirroring the source tree")
     parser.add_argument("-s", "--scale", type=float, default=1.0, help="pixel scale factor (default: 1)")
     parser.add_argument("--width", type=float, help="force logical width in px")
     parser.add_argument("--height", type=float, help="force logical height in px")
@@ -516,7 +567,23 @@ def main(argv=None):
     if not args.no_sandbox and hasattr(os, "geteuid") and os.geteuid() == 0:
         args.no_sandbox = True   # Chromium refuses to start as root otherwise
 
-    inputs = collect_inputs(args)
+    # Numeric validation up front: a scale of 0 or a negative one used to be
+    # passed straight through as --force-device-scale-factor=0.
+    if not math.isfinite(args.scale) or args.scale <= 0:
+        parser.error("--scale must be a positive, finite number")
+    for name in ("width", "height"):
+        value = getattr(args, name)
+        if value is not None and (not math.isfinite(value) or value <= 0):
+            parser.error("--%s must be a positive, finite number" % name)
+    if args.wait_ms < 0:
+        parser.error("--wait-ms must be 0 or greater")
+    if args.timeout <= 0:
+        parser.error("--timeout must be greater than 0")
+
+    try:
+        inputs = collect_inputs(args)
+    except ValueError as exc:
+        parser.error(str(exc))
     if not inputs:
         parser.error("no input given (pass SVG files or --input-dir)")
     if args.output and len(inputs) > 1:
@@ -535,18 +602,33 @@ def main(argv=None):
 
     profile_dir = tempfile.mkdtemp(prefix="svg2png-profile-")
     results, failures = [], 0
+    claimed = {}
+    total = len(inputs)
     try:
-        for src in inputs:
+        for index, (src, relative) in enumerate(inputs, 1):
             if args.output:
                 dest = Path(args.output)
             elif args.outdir:
-                dest = Path(args.outdir) / (src.stem + ".png")
+                dest = Path(args.outdir) / (relative if relative is not None
+                                            else src.stem + ".png")
             else:
                 dest = src.with_suffix(".png")
 
-            result = render_one(browser, src, dest, args.scale, background, profile_dir,
-                                args.wait_ms, args.timeout, args.no_sandbox, force_size,
-                                args.dry_run)
+            if total > 1 and not args.json:
+                print("[%d/%d] %s" % (index, total, src), file=sys.stderr)
+
+            # Two inputs mapping to one output silently lost a file before.
+            key = os.path.normcase(str(dest))
+            if key in claimed:
+                result = {"ok": False,
+                          "error": "output collision: %s is also the target of %s "
+                                   "(use --flat with --recursive to flatten on purpose)"
+                                   % (dest, claimed[key])}
+            else:
+                claimed[key] = str(src)
+                result = render_one(browser, src, dest, args.scale, background, profile_dir,
+                                    args.wait_ms, args.timeout, args.no_sandbox, force_size,
+                                    args.dry_run)
             result["input"] = str(src)
             results.append(result)
             if not result.get("ok"):

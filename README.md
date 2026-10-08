@@ -94,9 +94,15 @@ resvg 的失分是**静默的**（不报错、不警告），批处理时容易�
 
 ## 脚本会做的校验
 
-每次转换后都会用纯标准库的 PNG 解码器读回像素，判断图像是否**全透明或全白**（`blank`）。批处理时务必留意输出里的 `WARNING`；要程序化判断就用 `--json`，检查每个 result 的 `ok` 与 `warning` 字段。
+每次转换后都会用纯标准库的 PNG 解码器读回像素，判断图像是否**全透明或全白**（`blank`）。判定是**逐像素**做的，所以大画布上只有一个小元素也不会被漏判。批处理时务必留意输出里的 `WARNING`；要程序化判断就用 `--json`，检查每个 result 的 `ok` 与 `warning` 字段。
+
+批量模式会在 stderr 打印 `[3/30] xxx.svg` 形式的进度，stdout 保持干净（便于管道处理）。
 
 ## 文档
 
 - [`SKILL.md`](SKILL.md) — 完整参数表、必须知道的坑、常见问题排查
 - [`references/renderer-comparison.md`](references/renderer-comparison.md) — 渲染方案取舍依据与实测数据
+
+## 许可证
+
+[MIT](LICENSE) © 2026 Helloqiyuan

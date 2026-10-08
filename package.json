@@ -12,6 +12,7 @@
     "converter"
   ],
   "type": "commonjs",
+  "license": "MIT",
   "bin": {
     "svg-to-png-wb": "bin/install.js"
   },
@@ -20,7 +21,8 @@
     "scripts/",
     "references/",
     "SKILL.md",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
