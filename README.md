@@ -8,9 +8,7 @@
 
 用系统已装的 Chromium 系浏览器（Chrome / Edge / Chromium / Brave / Vivaldi / Opera）**无头模式**渲染，**零第三方依赖**——纯 Python 标准库，不需要 `pip install` 或 `npm install` 任何东西。
 
-> **关于名称里的 `wb`**：`wb` 是本工作区命名中的标识后缀，用来区分同类的不同实现（同目录下还有一个 `svg-to-png-trae`）。**它与 `WorkBuddy` 这个词没有直接关联**，不是它的缩写，也不代表它。
->
-> 下文出现的 `~/.workbuddy-ai/` 只是运行环境**既有的目录路径字面量**，由环境本身决定，与本 skill 的命名无关。
+> **关于名称里的 `wb`**：`wb` 是本工作区命名中的标识后缀，用来区分同类的不同实现（同目录下还有一个 `svg-to-png-trae`）。**它不代表任何产品名**，也不是任何缩写的还原，不要把它往某个产品上联想。
 
 ## 依赖
 
@@ -19,16 +17,19 @@
 
 ## 安装
 
+本安装器**刻意不绑定任何特定 agent 客户端的目录名**。默认装到一个中性的位置，再由你把它链接或复制到实际使用的客户端里；也可以直接用环境变量指定该客户端的 skills 根目录，省掉链接那一步。
+
 ### 方式一：用 npx 安装（推荐）
 
-零配置，直接从 npm 拉取并安装到运行环境的 skills 目录：
-
 ```bash
-# 装到用户级目录（~/.workbuddy-ai/skills/），所有项目都能用
+# 装到中性默认目录（~/.agent-skills/），所有项目都能用
 npx svg-to-png-wb
 
-# 装到当前项目（./.workbuddy-ai/skills/）
+# 装到当前项目（./.agent-skills/）
 npx svg-to-png-wb --project
+
+# 直接装到某个客户端的 skills 根目录，省掉手工链接
+AGENT_SKILLS_DIR="/path/to/skills" npx svg-to-png-wb
 
 # 覆盖已安装的旧版本
 npx svg-to-png-wb --force
@@ -48,23 +49,37 @@ npx github:Helloqiyuan/svg-to-png-wb
 
 | 选项 | 说明 |
 |---|---|
-| `-p, --project` | 装到当前项目的 `.workbuddy-ai/skills/` 下（默认是用户级目录） |
-| `--dest <path>` | 指定确切的安装目录 |
+| `-p, --project` | 装到当前项目的 `.agent-skills/` 下（默认是用户级目录） |
+| `--dest <path>` | 指定确切的安装目录（优先级最高） |
+| `AGENT_SKILLS_DIR` | 环境变量，指定 skills 根目录，本 skill 装到 `<它>/svg-to-png-wb` |
 | `-f, --force` | 目标已存在时覆盖 |
 | `--dry-run` | 只打印将要执行的操作 |
 | `--uninstall` | 卸载（只会删除确认为本 skill 的目录） |
 | `-h, --help` / `-v, --version` | 帮助 / 版本号 |
 
+优先级：`--dest` > `--project` > `$AGENT_SKILLS_DIR` > 中性默认目录。
+
 安装器只依赖 Node 内置模块，Node.js >= 18 即可，不需要 `npm install` 任何东西。
+
+### 装完之后：让客户端加载到它
+
+装到中性默认目录时，还需要一步：
+
+```bash
+# macOS / Linux
+ln -s ~/.agent-skills/svg-to-png-wb "<你的 skills 目录>/svg-to-png-wb"
+
+# Windows
+mklink /D "%USERPROFILE%\<你的 skills 目录>\svg-to-png-wb" "%USERPROFILE%\.agent-skills\svg-to-png-wb"
+```
+
+或者一开始就用 `AGENT_SKILLS_DIR` 指向真实的 skills 根目录，跳过这一步。
 
 ### 方式二：手动放置
 
-把整个目录放到：
+把整个目录复制到你所使用的客户端的 skills 目录下即可。
 
-- 用户级：`~/.workbuddy-ai/skills/svg-to-png-wb/`
-- 项目级：`<项目根>/.workbuddy-ai/skills/svg-to-png-wb/`
-
-也可以完全不当 Skill，直接当独立脚本用（见下方快速开始）。
+也可以完全不当 skill，直接当独立脚本用（见下方快速开始）。
 
 
 ## 快速开始

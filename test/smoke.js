@@ -125,11 +125,62 @@ test('--force overwrites an existing install', () => {
   assert.strictEqual(runInstaller(['--dest', dest, '--force']).status, 0);
 });
 
-test('--project targets ./.workbuddy-ai/skills under the cwd', () => {
+test('--project targets ./.agent-skills under the cwd', () => {
   const out = runInstaller(['--project', '--dry-run']);
   assert.strictEqual(out.status, 0);
-  const expected = path.join('.workbuddy-ai', 'skills', 'svg-to-png-wb');
+  const expected = path.join('.agent-skills', 'svg-to-png-wb');
   assert.ok(out.stdout.includes(expected), 'expected ' + expected + ' in:\n' + out.stdout);
+});
+
+test('the default target is a neutral path', () => {
+  const out = runInstaller(['--dry-run']);
+  assert.strictEqual(out.status, 0);
+  const expected = path.join(os.homedir(), '.agent-skills', 'svg-to-png-wb');
+  assert.ok(out.stdout.includes(expected), 'expected ' + expected + ' in:\n' + out.stdout);
+});
+
+test('AGENT_SKILLS_DIR overrides the default root', () => {
+  const root = path.join(sandbox, 'custom-root');
+  const out = spawnSync(process.execPath, [INSTALLER, '--dry-run'], {
+    encoding: 'utf8',
+    cwd: PKG_ROOT,
+    env: { ...process.env, AGENT_SKILLS_DIR: root },
+  });
+  assert.strictEqual(out.status, 0, out.stderr);
+  assert.ok(out.stdout.includes(path.join(root, 'svg-to-png-wb')),
+    'expected the env root in:\n' + out.stdout);
+});
+
+test('an explicit --dest wins over AGENT_SKILLS_DIR', () => {
+  const out = spawnSync(process.execPath, [INSTALLER, '--dry-run', '--dest', dest], {
+    encoding: 'utf8',
+    cwd: PKG_ROOT,
+    env: { ...process.env, AGENT_SKILLS_DIR: path.join(sandbox, 'ignored-root') },
+  });
+  assert.strictEqual(out.status, 0, out.stderr);
+  assert.ok(out.stdout.includes(dest), 'expected --dest to win in:\n' + out.stdout);
+});
+
+test('no agent-client product name appears anywhere in the package', () => {
+  // This skill deliberately stays client-agnostic: it must not hardcode any
+  // particular client's directory name or brand it as being "for" one client.
+  // The term is assembled rather than spelled out, because a file that asserts
+  // the term is absent cannot itself contain it.
+  const forbidden = ['work', 'buddy'].join('');
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === '.git' || entry.name === 'node_modules') continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (fs.readFileSync(full, 'utf8').toLowerCase().includes(forbidden)) {
+        offenders.push(path.relative(PKG_ROOT, full));
+      }
+    }
+  };
+  walk(PKG_ROOT);
+  assert.deepStrictEqual(offenders, [], 'the term leaked into: ' + offenders.join(', '));
 });
 
 // ---------------------------------------------------------------- uninstall

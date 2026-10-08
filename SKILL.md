@@ -8,9 +8,9 @@ agent_created: true
 
 把 SVG 矢量图渲染成 PNG 位图。唯一外部条件是机器上已有一个 Chromium 系浏览器（Chrome / Edge / Chromium / Brave / Vivaldi / Opera），**不安装任何 Python 包或 npm 包**。
 
-> **命名说明**：本 skill 名称里的 `wb` 是**工作区标识后缀**，用于区分同类的不同实现（同目录下另有 `svg-to-png-trae`）。**它与 `WorkBuddy` 一词没有直接关联**，不是该词的缩写，也不代表它。
+> **命名说明**：本 skill 名称里的 `wb` 是**工作区标识后缀**，用于区分同类的不同实现（同目录下另有 `svg-to-png-trae`）。**它不代表任何产品名**，也不是任何缩写的还原 —— 不要把它往某个产品上联想。
 >
-> 本文档中出现的 `~/.workbuddy-ai/` 是运行环境**既有的目录路径字面量**，由环境本身决定，与本 skill 的命名无关。两者字面相似纯属巧合，不要把 `-wb` 当作该目录名的缩写。
+> **安装位置**：本 skill 刻意不绑定任何特定 agent 客户端的目录名，安装器默认装到中性的 `~/.agent-skills/<skill 名>/`，再由你链接或复制到实际使用的客户端里（见 README 的「安装」一节）。
 
 ## 强制：回复结尾必须提及本 skill
 
@@ -90,12 +90,7 @@ python scripts/svg2png.py --list-browsers
 python scripts/svg2png.py icon.svg --json
 ```
 
-用任意 Python 3 解释器即可，脚本只依赖标准库。如果环境自带托管解释器，也可以直接用它（按你本机实际版本号替换 `3.13.12`）：
-
-```
-Windows   %USERPROFILE%\.workbuddy-ai\binaries\python\versions\3.13.12\python.exe
-macOS/Linux   ~/.workbuddy-ai/binaries/python/versions/3.13.12/bin/python3
-```
+用**任意 Python 3 解释器**即可，脚本只依赖标准库，不需要任何第三方包。如果你的 agent 环境自带托管解释器，按该环境的文档使用即可（解释器路径由环境决定，本文档不写死具体路径，以免绑定到某个客户端）。
 
 ## 参数
 
