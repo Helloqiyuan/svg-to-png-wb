@@ -1,0 +1,41 @@
+# Run the test suite on every push and pull request.
+#
+# The publish workflow already gates on tests, but that only fires on a
+# release tag - so a broken push could sit on main unnoticed until the day
+# someone tries to release. This runs the same checks continuously.
+#
+# It also answers a question the publish job depends on: does this runner
+# have a Chromium-family browser? test/regression.py renders real SVGs and
+# skips itself (rather than failing) when none is installed, so without this
+# step a green run would not tell you whether the render path was exercised.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false # never cache in a test run
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Show which browser the render tests used
+        run: |
+          python3 scripts/svg2png.py --list-browsers \
+            || echo "no Chromium-family browser on this runner - the render tests skipped themselves"

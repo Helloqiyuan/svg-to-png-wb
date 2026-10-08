@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/svg-to-png-wb.svg)](https://www.npmjs.com/package/svg-to-png-wb)
 [![license](https://img.shields.io/npm/l/svg-to-png-wb.svg)](LICENSE)
+[![CI](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/ci.yml/badge.svg)](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/ci.yml)
 [![publish](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml/badge.svg)](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml)
 
 把 SVG 矢量图渲染成 PNG 位图的 agent skill。
@@ -163,6 +164,8 @@ python test/regression.py       # 只跑 svg2png.py 的回归测试
 - `test/regression.py` —— 覆盖 v1.0.1 修掉的每一个静默失败：缺失输入文件不再拖垮整批、`--recursive` 保留目录结构、`--flat` 冲突上报、数值参数校验、批量进度、`blank` 判定不被采样漏判。装了 Pillow 时还会用它做一次交叉校验
 
 两者都不需要额外依赖，也不写入仓库（Python 语法校验用 `ast.parse` 而非 `py_compile`，避免 `__pycache__` 混进 npm 包）。
+
+每次 push 到 `main` 和每个 PR 都会在 GitHub Actions 上跑一遍（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）；发布时（[`publish.yml`](.github/workflows/publish.yml)）会再跑一次作为发布门槛。
 
 ## 文档
 
