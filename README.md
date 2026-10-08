@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/svg-to-png-wb.svg)](https://www.npmjs.com/package/svg-to-png-wb)
 [![license](https://img.shields.io/npm/l/svg-to-png-wb.svg)](LICENSE)
+[![publish](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml/badge.svg)](https://github.com/Helloqiyuan/svg-to-png-wb/actions/workflows/publish.yml)
 
 把 SVG 矢量图渲染成 PNG 位图的 WorkBuddy Skill。
 
@@ -106,6 +107,32 @@ resvg 的失分是**静默的**（不报错、不警告），批处理时容易�
 每次转换后都会用纯标准库的 PNG 解码器读回像素，判断图像是否**全透明或全白**（`blank`）。判定是**逐像素**做的，所以大画布上只有一个小元素也不会被漏判。批处理时务必留意输出里的 `WARNING`；要程序化判断就用 `--json`，检查每个 result 的 `ok` 与 `warning` 字段。
 
 批量模式会在 stderr 打印 `[3/30] xxx.svg` 形式的进度，stdout 保持干净（便于管道处理）。
+
+## 发布新版本
+
+发布走 GitHub Actions + **trusted publishing (OIDC)**，不使用任何长期令牌——npm 计划在 2027 年 1 月收回 bypass-2FA 令牌的直接发布权限，OIDC 是唯一长期可用的路径。
+
+```bash
+# 1) 改版本号并提交
+npm version patch   # 或 minor / major
+
+# 2) 触发发布：打 tag 推上去，或在 GitHub Actions 页面手动 Run workflow
+git push && git push --tags
+```
+
+工作流见 [`.github/workflows/publish.yml`](.github/workflows/publish.yml)。它会先跑 `npm ci` 和 `npm test`，tag 推送时还会校验 tag 与 `package.json` 版本是否一致，然后才 `npm publish`。
+
+首次使用需要在 npmjs.com 上配置 trusted publisher（包的 Settings → Trusted Publisher）：
+
+| 字段 | 值 |
+|---|---|
+| Select your publisher | GitHub Actions |
+| Organization or user | `Helloqiyuan` |
+| Repository | `svg-to-png-wb` |
+| Workflow filename | `publish.yml`（**只填文件名，区分大小写**） |
+| Allowed actions | `npm publish` |
+
+两点注意：配置**保存后 2 天内**必须完成首次成功发布，否则会失效；`package.json` 的 `repository.url` 必须与仓库精确匹配，否则认证失败。
 
 ## 文档
 

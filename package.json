@@ -13,6 +13,15 @@
   ],
   "type": "commonjs",
   "license": "MIT",
+  "author": "Helloqiyuan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Helloqiyuan/svg-to-png-wb.git"
+  },
+  "homepage": "https://github.com/Helloqiyuan/svg-to-png-wb#readme",
+  "bugs": {
+    "url": "https://github.com/Helloqiyuan/svg-to-png-wb/issues"
+  },
   "bin": {
     "svg-to-png-wb": "bin/install.js"
   },
@@ -34,6 +43,6 @@
   ],
   "scripts": {
     "install-skill": "node bin/install.js",
-    "test": "node bin/install.js --dry-run"
+    "test": "node test/smoke.js"
   }
 }

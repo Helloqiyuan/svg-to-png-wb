@@ -1,0 +1,63 @@
+# Publish to npm using trusted publishing (OIDC).
+#
+# No NPM_TOKEN is involved: GitHub mints a short-lived OIDC token that npm
+# exchanges for a one-off publish credential. That removes the 2FA problem
+# entirely - and it is the only path npm still supports long term, since
+# bypass-2FA granular access tokens lose direct publish in January 2027.
+#
+# One-time setup on npmjs.com (package -> Settings -> Trusted Publisher):
+#   Select your publisher : GitHub Actions
+#   Organization or user  : Helloqiyuan
+#   Repository            : svg-to-png-wb
+#   Workflow filename     : publish.yml      <- file name only, case sensitive
+#   Allowed actions       : npm publish
+# The configuration expires if the first successful publish does not happen
+# within 2 days, so trigger this workflow soon after saving it.
+#
+# Requirements enforced by npm: npm CLI >= 11.5.1 and Node >= 22.14.0, on a
+# GitHub-hosted runner.
+
+name: Publish to npm
+
+on:
+  # Manual trigger from the Actions tab - use this for the first publish,
+  # so the trusted-publisher config gets validated before it expires.
+  workflow_dispatch:
+
+  # Publishing a GitHub Release tagged v* also publishes to npm.
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write # required for OIDC
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false # never cache in release builds
+
+      - run: npm ci
+
+      # Refuse to publish a tag that disagrees with package.json.
+      - name: Check tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          pkg_version="$(node -p "require('./package.json').version")"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$pkg_version" != "$tag_version" ]; then
+            echo "package.json is $pkg_version but the tag is $tag_version" >&2
+            exit 1
+          fi
+
+      - run: npm test
+
+      - run: npm publish --access public
