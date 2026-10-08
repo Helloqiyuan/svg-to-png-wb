@@ -11,12 +11,47 @@
 
 ## 安装
 
-作为 WorkBuddy Skill 使用，把整个目录放到：
+### 方式一：用 npx 安装（推荐）
+
+零配置，直接从 GitHub 拉取并安装到 WorkBuddy 的 skills 目录：
+
+```bash
+# 装到用户级目录（~/.workbuddy-ai/skills/），所有项目都能用
+npx github:Helloqiyuan/svg-to-png-wb
+
+# 装到当前项目（./.workbuddy-ai/skills/）
+npx github:Helloqiyuan/svg-to-png-wb --project
+
+# 覆盖已安装的旧版本
+npx github:Helloqiyuan/svg-to-png-wb --force
+
+# 先看看会做什么，不写任何文件
+npx github:Helloqiyuan/svg-to-png-wb --dry-run
+
+# 卸载
+npx github:Helloqiyuan/svg-to-png-wb --uninstall
+```
+
+| 选项 | 说明 |
+|---|---|
+| `-p, --project` | 装到当前项目的 `.workbuddy-ai/skills/` 下（默认是用户级目录） |
+| `--dest <path>` | 指定确切的安装目录 |
+| `-f, --force` | 目标已存在时覆盖 |
+| `--dry-run` | 只打印将要执行的操作 |
+| `--uninstall` | 卸载（只会删除确认为本 skill 的目录） |
+| `-h, --help` / `-v, --version` | 帮助 / 版本号 |
+
+安装器只依赖 Node 内置模块，Node.js >= 18 即可，不需要 `npm install` 任何东西。
+
+### 方式二：手动放置
+
+把整个目录放到：
 
 - 用户级：`~/.workbuddy-ai/skills/svg-to-png-wb/`
 - 项目级：`<项目根>/.workbuddy-ai/skills/svg-to-png-wb/`
 
-也可以直接当独立脚本用，不需要装成 Skill。
+也可以完全不当 Skill，直接当独立脚本用（见下方快速开始）。
+
 
 ## 快速开始
 
