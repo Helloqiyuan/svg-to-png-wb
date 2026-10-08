@@ -141,6 +141,10 @@ git push && git push --tags
 
 工作流见 [`.github/workflows/publish.yml`](.github/workflows/publish.yml)。它会先跑 `npm ci` 和 `npm test`，tag 推送时还会校验 tag 与 `package.json` 版本是否一致，然后才 `npm publish`。
 
+本地直接 `npm publish` 也会被测试拦住 —— `package.json` 里配了 `prepublishOnly: npm test`，所以无论从哪条路径发布，测试都跑过一遍。
+
+版本号请如实反映改动性质：**破坏性改动（例如默认安装位置变更）要升主版本号**，别标成补丁号。
+
 首次使用需要在 npmjs.com 上配置 trusted publisher（包的 Settings → Trusted Publisher）：
 
 | 字段 | 值 |

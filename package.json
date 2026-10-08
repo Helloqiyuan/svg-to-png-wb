@@ -42,6 +42,7 @@
   ],
   "scripts": {
     "install-skill": "node bin/install.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js",
+    "prepublishOnly": "npm test"
   }
 }
